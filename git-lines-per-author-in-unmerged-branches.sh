@@ -1,0 +1,36 @@
+#!/usr/bin/bash
+
+trunk=$1
+
+if [ -z "${trunk}" ] ; then
+  echo "usage: $0 <trunk>"
+  exit 1
+fi
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# readarray -t revs <<< "$(git log --format="%H" "$(git merge-base "${trunk}" "${branch}")".."${branch}")"
+# for rev in "${revs[@]}" ; do
+#   IFS=": " read -r author count <<< "$("${SCRIPT_DIR}"/git-lines-per-author-in-commit.sh "${rev}")"
+#   echo "${author} ${count}"
+# done
+
+#  1417  2023-05-29 11:29:24 readarray -t branches <<< "$(~/devl/bash/git/git-unmerged-branches-no-on-remote.sh master)"
+#  1418  2023-05-29 11:31:41 for branch in "${branches[@]}" ; do counts="$(~/devl/bash/git/git-lines-per-author-in-branch.sh master "${branch}")"; echo "${branch}"; for cnt in "${counts[@]}" ; do echo "  " "${cnt}"; done done
+
+
+readarray -t branches <<< "$(git branch | sed 's/. \(.*\)/\1/g' | sed 's/remotes\/origin\/\(.*\)/\1/g' | awk 'NF > 0' | awk '!seen[$0]++' | sort)"
+# declare -A unmerged
+for b in "${branches[@]}" ; do
+  behind="$("${SCRIPT_DIR}"/git-commits-behind.sh "${trunk}" "${b}")"
+  ahead="$("${SCRIPT_DIR}"/git-commits-ahead.sh "${trunk}" "${b}")"
+  if [ "${ahead}" == 0 ] ; then
+    continue
+  fi
+  readarray -t counts <<< "$("${SCRIPT_DIR}"/git-lines-per-author-in-branch.sh "${trunk}" "${b}")"
+  echo "${b} is ${behind}:${ahead} behind:ahead of ${trunk}"
+  for count in "${counts[@]}" ; do
+    echo "  ${count}"
+  done
+  echo ""
+done

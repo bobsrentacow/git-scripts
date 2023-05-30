@@ -10,8 +10,8 @@ echo "of that branch.  Merge-base is checked on a per-branch basis relative to t
 echo ""
 
 # find all branches, and merged branches, then create list of unmerged branches
-readarray -t branches <<< "$(git branch | sed 's/\(. \|  \)\(.*\)/\2/')"
-readarray -t merged <<< "$(git branch --merged "${trunk}" | sed 's/\(. \|  \)\(.*\)/\2/')"
+readarray -t branches <<< "$(git branch | awk '{ print $1 }' | sed '/*\|+/d')"
+readarray -t merged <<< "$(git branch --merged "${trunk}" | awk '{ print $1 }' | sed '/*\|+/d')"
 for del in "${merged[@]}"; do
   for ii in "${!branches[@]}"; do
     if [[ "${branches[ii]}" == "${del}" ]]; then
@@ -21,8 +21,6 @@ for del in "${merged[@]}"; do
 done
 
 for branch in "${branches[@]}" ; do
-  # merge_base=$(git merge-base "${trunk}" "${branch}")
-  # readarray -t commits <<< "$(git log --format=format:"%H" "${merge_base}".."${branch}")"
   commits_text="$(git log --format=format:"%H" "$(git merge-base "${trunk}" "${branch}")".."${branch}")"
   if [ -z "${commits_text}" ] ; then
     continue
@@ -46,20 +44,3 @@ for branch in "${branches[@]}" ; do
     continue
   fi
 done
-
-# echo "${#branches[@]}"
-# for branch in "${branches[@]}" ; do
-#   echo "$branch"
-# #   if [ "${branch}" == "${merge_base}" ] ; then
-# #     continue
-# #   fi
-# #   echo "branch: ${branch}"
-# #   # merge_base=$(git merge-base "${trunk}" "${branch}")
-# #   # commits=($(git log --format=format:"%H" "${merge_base}".."${branch}"))
-
-# #   # for commit in "${commits[@]}" ; do
-# #   #   echo "commit: ${commit}"
-# #   #   # git ls-tree -r "${commit}" | awk '$4 ~ /^cache\//'  
-# #   #   git ls-tree -r e62587291358fe212bdccb72385ed1c50579ae56 | awk '$4 ~ /^cache\/\S+\//'
-# #   # done
-# done
