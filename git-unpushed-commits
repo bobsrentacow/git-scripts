@@ -16,7 +16,7 @@ for b in "${branches[@]}" ; do
     echo "${b}: upstream not in remotes"
     continue
   fi
-  ahead="$("${SCRIPT_DIR}"/git-commits-ahead.sh "${remote}" "${b}")"
+  ahead="$("${SCRIPT_DIR}"/git-commits-ahead "${remote}" "${b}")"
   if [ "${ahead}" -gt 0 ] ; then
     echo -e "${b}: ${fg_red}${ahead}${fg_dflt}"
   fi
