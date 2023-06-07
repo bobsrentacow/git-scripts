@@ -13,11 +13,11 @@ for b in "${branches[@]}" ; do
   min_behind=0
   min_ahead=0
   for trunk in "$@" ; do
-    behind="$("${SCRIPT_DIR}"/git-commits-behind "${trunk}" "${b}")"
+    behind="$("${SCRIPT_DIR}"/git-behind "${trunk}" "${b}")"
     if [ "${min_behind}" -gt "${behind}" ] ; then
       min_behind="${behind}"
     fi
-    ahead="$("${SCRIPT_DIR}"/git-commits-ahead "${trunk}" "${b}")"
+    ahead="$("${SCRIPT_DIR}"/git-ahead "${trunk}" "${b}")"
     if [ "${min_ahead}" -gt "${ahead}" ] ; then
       min_ahead="${ahead}"
     fi

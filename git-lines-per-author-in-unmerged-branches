@@ -22,8 +22,8 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 readarray -t branches <<< "$(git branch | sed 's/. \(.*\)/\1/g' | sed 's/remotes\/origin\/\(.*\)/\1/g' | awk 'NF > 0' | awk '!seen[$0]++' | sort)"
 # declare -A unmerged
 for b in "${branches[@]}" ; do
-  behind="$("${SCRIPT_DIR}"/git-commits-behind "${trunk}" "${b}")"
-  ahead="$("${SCRIPT_DIR}"/git-commits-ahead "${trunk}" "${b}")"
+  behind="$("${SCRIPT_DIR}"/git-behind "${trunk}" "${b}")"
+  ahead="$("${SCRIPT_DIR}"/git-ahead "${trunk}" "${b}")"
   if [ "${ahead}" == 0 ] ; then
     continue
   fi

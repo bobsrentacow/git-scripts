@@ -1,11 +1,34 @@
 #!/usr/bin/bash
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+script_name="$(basename "${BASH_SOURCE[0]}")"
+
 if [ -z "$1" ] ; then
-  echo "usage: $0 <trunk>"
+cat 1>&2 <<- EOM
+	usage: $script_name <trunk> [<trunk1> ...]
+
+	description:
+      For each branch in the local repo, find the # of commits behind and ahead of <trunk>.  It then
+      outputs a list of branches with at least one commit ahead of <trunk>, sorted by increasing
+      number of commits behind <trunk>.
+
+      If more than one trunk (positional argument) is given, branches are excluded from the output if
+      they have been merged into any of the trunks.
+EOM
   exit 1
 fi
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+# dependencies
+git_behind="${script_dir}"/git-behind
+git_ahead="${script_dir}"/git-ahead
+if [ ! -x "$git_behind" ]; then
+  echo "FATAL: git-behind not available in \$PATH" 1>&2
+  exit 1
+fi
+if [ ! -x "$git_ahead" ]; then
+  echo "FATAL: git-ahead not available in \$PATH" 1>&2
+  exit 1
+fi
 
 readarray -t branches <<< "$(git branch | awk '{ print $1 }' | sed '/origin\|*\|+/d')"
 for b in "${branches[@]}" ; do
@@ -13,21 +36,25 @@ for b in "${branches[@]}" ; do
   min_behind=4294967295
   min_ahead=4294967295
   for trunk in "$@" ; do
-    behind="$("${SCRIPT_DIR}"/git-commits-behind "${trunk}" "${b}")"
+    behind="$("$git_behind" "${trunk}" "${b}")"
     if [ "${min_behind}" -gt "${behind}" ] ; then
       min_behind="${behind}"
     fi
-    ahead="$("${SCRIPT_DIR}"/git-commits-ahead "${trunk}" "${b}")"
-    # if [ "${ahead}" -ne 0 ] ; then
-    #   echo "${trunk} -> ${b} ${ahead}"
-    # fi
+    ahead="$("$git_ahead" "${trunk}" "${b}")"
     if [ "${min_ahead}" -gt "${ahead}" ] ; then
       min_ahead="${ahead}"
     fi
-    # echo "> ${trunk} behind: ${behind}" 1>&2
-    # echo "> ${trunk} ahead: ${ahead}" 1>&2
   done
   if [ "${min_ahead}" -ne 0 ] ; then
-    echo "${b} ${min_behind}:${min_ahead}"
+    author="$(git cat-file -p "$(git rev-parse "$b")" | sed -nE 's/author (.*?) <.*/\1/p')"
+    ahead_list+=("$(printf "%6d %6d %-25s %s\n" "$behind" "$ahead" "\"$author\"" "$b")")
   fi
 done
+if [ "${#ahead_list[@]}" -gt 0 ]; then
+  IFS=$'\n'; ahead_list=("$(sort -n -k1 <<< "${ahead_list[*]}")"); IFS=
+  # readarray -t ahead_list <<< "$(sort -n -k1 <<< "${ahead_list[*]}")"
+  printf "%6s %6s %-25s %s\n" "behind" " ahead" "author      " "branch"
+  for row in "${ahead_list[@]}"; do
+    echo "$row"
+  done
+fi
