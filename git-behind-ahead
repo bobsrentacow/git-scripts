@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+
+trunk=$1
+branch=$2
+
+if [ -z "$trunk" ]; then
+  my_name="$(basename "${BASH_SOURCE[0]}")"
+  echo "usage: $my_name <trunk> [branch]"
+  exit 1
+fi
+if [ -z "$branch" ]; then
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+fi
+
+behind="$(git log --oneline "$(git merge-base "$trunk" "$branch")".."$trunk" | wc -l)"
+ahead="$(git log --oneline "$(git merge-base "$trunk" "$branch")".."$branch" | wc -l)"
+echo "$behind $ahead"

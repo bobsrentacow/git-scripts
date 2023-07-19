@@ -3,9 +3,23 @@
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 script_name="$(basename "${BASH_SOURCE[0]}")"
 
+unmerged=
+merged=
+while getopts "um" o; do
+  case "$o" in 
+    u) unmerged=1 ;;
+    m) merged=1 ;;
+    *) ;;
+  esac
+done
+shift $((OPTIND-1))
+
 if [ -z "$1" ] ; then
 cat 1>&2 <<- EOM
-	usage: $script_name <trunk> [<trunk1> ...]
+	usage: $script_name [flags] <trunk> [<trunk1> ...]
+
+  flags:
+      -u  only show branches where ahead > 0
 
 	description:
       For each branch in the local repo, find the # of commits behind and ahead of <trunk>.  It then
@@ -45,7 +59,13 @@ for b in "${branches[@]}" ; do
       min_ahead="${ahead}"
     fi
   done
-  if [ "${min_ahead}" -ne 0 ] ; then
+  if [ -z "$unmerged" ] && [ -z "$merged" ] ; then
+    author="$(git cat-file -p "$(git rev-parse "$b")" | sed -nE 's/author (.*?) <.*/\1/p')"
+    ahead_list+=("$(printf "%6d %6d %-25s %s\n" "$behind" "$ahead" "\"$author\"" "$b")")
+  elif [ -n "$merged" ] && [ "${min_ahead}" -eq 0 ] ; then
+    author="$(git cat-file -p "$(git rev-parse "$b")" | sed -nE 's/author (.*?) <.*/\1/p')"
+    ahead_list+=("$(printf "%6d %6d %-25s %s\n" "$behind" "$ahead" "\"$author\"" "$b")")
+  elif [ -n "$unmerged" ] && [ "${min_ahead}" -ne 0 ] ; then
     author="$(git cat-file -p "$(git rev-parse "$b")" | sed -nE 's/author (.*?) <.*/\1/p')"
     ahead_list+=("$(printf "%6d %6d %-25s %s\n" "$behind" "$ahead" "\"$author\"" "$b")")
   fi
